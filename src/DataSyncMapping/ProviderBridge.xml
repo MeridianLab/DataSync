@@ -1,0 +1,86 @@
+<BridgeProcess Name="Provider">
+  <Variables>
+    <Variable Name="BridgeLogId" SourceType="GenerateId" ValueType="Guid"></Variable>
+  </Variables>
+    <Step Name="Update Bridge Log" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+    INSERT INTO BridgeLog
+    ([ID],[StartDateTime], [EndDateTime], [Status], [DescLog], [CurrentStep])
+    VALUES('[~BridgeLogId~]',getdate(), null, 'Running', null, 'Importing From Copia; Provider');
+]]>
+    </Step>
+    <Step Name="Clear Existing Provider Table" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+    TRUNCATE TABLE Provider
+]]>
+    </Step>
+    <Step Name="Read Provider Records from Copia" StepType="SQLRead" DataSource="SourceDB">
+      <![CDATA[
+declare @epochDt as BIGINT = (select ReportHelper.dbo.ufnDateTime2EpochSec(DateAdd(day,-[~ImportDays~],GetDate())))
+
+SELECT DISTINCT copia.StaffUse.updateStamp, ReportHelper.dbo.ufnEpochSec2DateDST(copia.StaffUse.updateStamp) AS updateDate, 
+    copia.StaffUse.staffKey AS recordKey, copia.Staff.lastName, copia.Staff.firstName, copia.Staff.lastName + ', ' + copia.Staff.firstName AS fullName, 
+    copia.Staff.degree, NULL AS SSN, copia.StaffUse.organizationKey AS locKey, 1 AS matchLoc, copia.Address.address1 AS addr1, 
+    copia.Address.address2 AS addr2, copia.Staff.phone AS phone1, copia.StaffUse.isActive, copia.Staff.isPhysician
+FROM         copia.StaffUse WITH (NOLOCK) INNER JOIN
+                      copia.Staff WITH (NOLOCK) ON copia.StaffUse.staffKey = copia.Staff.staffKey INNER JOIN
+                      copia.Address WITH (NOLOCK) ON copia.Staff.addressKey = copia.Address.addressKey
+WHERE   copia.StaffUse.updateStamp > @epochDt
+AND (copia.Staff.isPhysician = 1) AND (copia.StaffUse.isActive = 1)
+AND copia.StaffUse.organizationKey <> 68
+AND copia.StaffUse.organizationKey IN ([~CopiaLocationIds~])
+ORDER BY copia.StaffUse.staffKey
+]]>
+      <ResultAction ResultAction="MemoryStore" VariableName="ProviderSourceData"/>
+    </Step>    
+    <Step Name="Write Provider Data to Staging Database" StepType="Sync" DataSource="TargetDB" DataTarget="StagingDB">
+      <Source InMemoryStore="True" VariableName="ProviderSourceData"/>
+      <Keys>
+        <PKey Source="recordKey" Target="recordKey"/>
+        <FKey Source="locKey" Target="locKey"/>
+        <EpochTimStamp Source="updateStamp" Target="updateStamp"/>
+      </Keys>
+      <Map BatchSize="10" TableName="Provider">
+				<Column Name="recordKey" Type="Numeric"/>
+				<Column Name="LastName" Length="30"/>
+				<Column Name="FirstName" Length="30"/>
+				<Column Name="FullName" Length="50"/>
+				<Column Name="degree" Length="10"/>
+				<Column Name="ssn" Length="20"/>
+				<Column Name="locKey" type="int"/>
+				<Column Name="matchLoc" type="bit"/>
+				<Column Name="addr1" Length="25"/>
+				<Column Name="addr2" Length="25"/>
+				<Column Name="phone1" Length="20"/>
+				<Column Name="updateStamp" Type="numeric"/>
+				<Column Name="updateDate" Type="datetime"/>
+			</Map>
+		</Step>
+    <Step Name="Remove Provider DataTable From Memory" StepType="RemoveVariable" VariableName="ProviderSourceData"></Step>
+    <Step Name="Update Provider Lockey" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+UPDATE Provider 
+SET LocKey = HL.recordKey
+FROM Provider
+	LEFT OUTER JOIN HarvestSQL.dbo.Location HL
+		ON Provider.LocKey = HL.CopiaKey
+
+update provider set lockey = l.recordkey
+FROM Location l, PROVIDER p
+where substring(p.lastname, 0, (charindex(')', p.lastname) + 1)) =  l.abbrev2
+-- and p.lockey is null]]>
+    </Step>
+    <Step Name="Update Provider Fullname" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+update provider set fullname = substring(lastname, 0, (charindex(')', lastname) + 1)) + Firstname + ' ' + 
+substring(lastname, (charindex(')', lastname) + 1), len(lastname))]]>
+    </Step>
+
+    <Step Name="BridgeLog-End" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+UPDATE BridgeLog
+ SET [EndDateTime] = GetDate()
+WHERE [ID] = '[~BridgeLogId~]';
+]]>
+    </Step>
+</BridgeProcess>

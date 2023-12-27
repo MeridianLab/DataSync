@@ -1,0 +1,102 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.4.33603.86
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge", "HarvestBridge\Harvest.Bridge.csproj", "{D0EFF06A-574E-4934-ADBF-56040FF17C92}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.BridgeTest", "HarvestBridgeTest\Harvest.BridgeTest.csproj", "{4FE4A816-4826-44F2-8534-C56EBCCFA8A4}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.DAL", "HarvestBridgeDAL\Harvest.Bridge.DAL.csproj", "{8BDBAF25-B0C8-4172-A8EA-6690D094F5E7}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.Logger", "Harvest.Bridge.Logger\Harvest.Bridge.Logger.csproj", "{EB5CBBBD-0D50-4C1F-A291-ECAEA9CFD27F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.Sync", "Harvest.Bridge.Sync\Harvest.Bridge.Sync.csproj", "{350FCE0E-FE43-4247-B5F5-0EEDEFF27B97}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.Util", "Harvest.Bridge.Util\Harvest.Bridge.Util.csproj", "{9C7E4B68-AD8A-4DF2-AE12-0AF5DDF02AD3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.Common", "Harvest.Bridge.Common\Harvest.Bridge.Common.csproj", "{D1A0F27E-FC03-47D1-B32E-013886315C27}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Database", "Database", "{5CF3D8AC-79BF-4C8B-9BD2-642A55FDADEA}"
+	ProjectSection(SolutionItems) = preProject
+		Database\ConversionScript.sql = Database\ConversionScript.sql
+		Database\HarvestSQL_StagingSchema.sql = Database\HarvestSQL_StagingSchema.sql
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "DataSyncMapping", "DataSyncMapping", "{DFB5AE74-556F-4A1C-B32D-98D3E783A093}"
+	ProjectSection(SolutionItems) = preProject
+		DataSyncMapping\BloodTestBridge.xml = DataSyncMapping\BloodTestBridge.xml
+		DataSyncMapping\Global.xml = DataSyncMapping\Global.xml
+		DataSyncMapping\OrdPanelBridge.xml = DataSyncMapping\OrdPanelBridge.xml
+		DataSyncMapping\PatientBridge.xml = DataSyncMapping\PatientBridge.xml
+		DataSyncMapping\ProviderBridge.xml = DataSyncMapping\ProviderBridge.xml
+		DataSyncMapping\TestBridge.xml = DataSyncMapping\TestBridge.xml
+		DataSyncMapping\TestResultBridge.xml = DataSyncMapping\TestResultBridge.xml
+	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.UI", "Harvest.Bridge.UI\Harvest.Bridge.UI.csproj", "{D941F64F-467F-4FA3-9363-86CF1989115F}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.WindowsService", "Harvest.Bridge.WindowsService\Harvest.Bridge.WindowsService.csproj", "{E6037316-2C18-4CAC-B06B-5E6F57973068}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.WebSite", "Harvest.Bridge.WebSite\Harvest.Bridge.WebSite.csproj", "{FF09606D-AC13-4461-B999-E80B9E3B2BF0}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Harvest.Bridge.Bus", "Harvest.Bridge.Bus\Harvest.Bridge.Bus.csproj", "{A7E1A407-BBF1-4224-985E-CD7BEF96B47C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{D0EFF06A-574E-4934-ADBF-56040FF17C92}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D0EFF06A-574E-4934-ADBF-56040FF17C92}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D0EFF06A-574E-4934-ADBF-56040FF17C92}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D0EFF06A-574E-4934-ADBF-56040FF17C92}.Release|Any CPU.Build.0 = Release|Any CPU
+		{4FE4A816-4826-44F2-8534-C56EBCCFA8A4}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{4FE4A816-4826-44F2-8534-C56EBCCFA8A4}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{4FE4A816-4826-44F2-8534-C56EBCCFA8A4}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{4FE4A816-4826-44F2-8534-C56EBCCFA8A4}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8BDBAF25-B0C8-4172-A8EA-6690D094F5E7}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8BDBAF25-B0C8-4172-A8EA-6690D094F5E7}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8BDBAF25-B0C8-4172-A8EA-6690D094F5E7}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8BDBAF25-B0C8-4172-A8EA-6690D094F5E7}.Release|Any CPU.Build.0 = Release|Any CPU
+		{EB5CBBBD-0D50-4C1F-A291-ECAEA9CFD27F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{EB5CBBBD-0D50-4C1F-A291-ECAEA9CFD27F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{EB5CBBBD-0D50-4C1F-A291-ECAEA9CFD27F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{EB5CBBBD-0D50-4C1F-A291-ECAEA9CFD27F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{350FCE0E-FE43-4247-B5F5-0EEDEFF27B97}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{350FCE0E-FE43-4247-B5F5-0EEDEFF27B97}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{350FCE0E-FE43-4247-B5F5-0EEDEFF27B97}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{350FCE0E-FE43-4247-B5F5-0EEDEFF27B97}.Release|Any CPU.Build.0 = Release|Any CPU
+		{9C7E4B68-AD8A-4DF2-AE12-0AF5DDF02AD3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{9C7E4B68-AD8A-4DF2-AE12-0AF5DDF02AD3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{9C7E4B68-AD8A-4DF2-AE12-0AF5DDF02AD3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{9C7E4B68-AD8A-4DF2-AE12-0AF5DDF02AD3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D1A0F27E-FC03-47D1-B32E-013886315C27}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D1A0F27E-FC03-47D1-B32E-013886315C27}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D1A0F27E-FC03-47D1-B32E-013886315C27}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D1A0F27E-FC03-47D1-B32E-013886315C27}.Release|Any CPU.Build.0 = Release|Any CPU
+		{D941F64F-467F-4FA3-9363-86CF1989115F}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{D941F64F-467F-4FA3-9363-86CF1989115F}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{D941F64F-467F-4FA3-9363-86CF1989115F}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{D941F64F-467F-4FA3-9363-86CF1989115F}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E6037316-2C18-4CAC-B06B-5E6F57973068}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E6037316-2C18-4CAC-B06B-5E6F57973068}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E6037316-2C18-4CAC-B06B-5E6F57973068}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E6037316-2C18-4CAC-B06B-5E6F57973068}.Release|Any CPU.Build.0 = Release|Any CPU
+		{FF09606D-AC13-4461-B999-E80B9E3B2BF0}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{FF09606D-AC13-4461-B999-E80B9E3B2BF0}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{FF09606D-AC13-4461-B999-E80B9E3B2BF0}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{FF09606D-AC13-4461-B999-E80B9E3B2BF0}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7E1A407-BBF1-4224-985E-CD7BEF96B47C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7E1A407-BBF1-4224-985E-CD7BEF96B47C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7E1A407-BBF1-4224-985E-CD7BEF96B47C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7E1A407-BBF1-4224-985E-CD7BEF96B47C}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {DF79E785-32AA-49F5-954D-C4A486808166}
+	EndGlobalSection
+EndGlobal

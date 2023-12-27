@@ -1,0 +1,78 @@
+<BridgeProcess Name="TestResults">
+  <Variables>
+    <Variable Name="BridgeLogId" SourceType="GenerateId" ValueType="Guid"></Variable>
+  </Variables>
+    <Step Name="Update Bridge Log" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+    INSERT INTO BridgeLog
+    ([ID],[StartDateTime], [EndDateTime], [Status], [DescLog], [CurrentStep])
+    VALUES('[~BridgeLogId~]',getdate(), null, 'Running', null, 'Importing From Copia; TestResults');
+]]>
+    </Step>
+    <Step Name="Clear Existing TestResults Table" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+    TRUNCATE TABLE TestResults
+]]>
+    </Step>
+    <Step Name="Update ReportHelper.copia.TestResults" StepType="SQLRead" DataSource="SourceDB">
+      <![CDATA[
+declare @epochDt as BIGINT = (select ReportHelper.dbo.ufnDateTime2EpochSec(DateAdd(day,-[~ImportDays~],GetDate())))
+
+SELECT DISTINCT copia.Result.resultKey recordKey, copia.Result.numericPart AS numresult, 
+	ReportHelper.dbo.ResultTextHelper(copia.result.resultkey, copia.Result.textPart) AS textresult, 
+	ReportHelper.dbo.ufnEpochSec2DateDST(copia.Result.runStamp) AS rundate, 
+	copia.Result.testKey, copia.Specimen.specimenKey AS blookey, NULL AS prefix, 
+	copia.Specimen.patientKey AS patikey, copia.Specimen.orderingPhysicianKey, copia.Result.status, 
+	copia.OrderedPanel.orderedPanelKey Ordpkey, copia.Specimen.specimenKey AS SID, 	Copia.Result.labTestDescription, copia.Specimen.requisitionKey
+FROM	copia.Patient  WITH (NOLOCK)
+		INNER JOIN copia.Specimen WITH (NOLOCK)
+			on copia.Patient.patientKey = copia.Specimen.patientKey
+		INNER JOIN copia.OrderedPanel  WITH (NOLOCK)
+			ON copia.OrderedPanel.specimenKey = copia.Specimen.specimenKey 
+		INNER JOIN copia.SubSpecimen  WITH (NOLOCK)
+			ON copia.SubSpecimen.specimenKey = copia.Specimen.specimenKey 
+		INNER JOIN copia.Result  WITH (NOLOCK)
+			ON copia.OrderedPanel.orderedPanelKey = copia.Result.orderedPanelKey
+		INNER JOIN copia.location  WITH (NOLOCK)
+			on copia.location.locationKey = copia.Patient.locationKey 
+WHERE copia.Result.runStamp >= @epochDt
+	AND copia.Result.ValueToReport = 1 
+	AND copia.Result.textPart NOT LIKE 'INVALID%'
+	AND substring(copia.location.id, 0, 4) NOT IN ('NC-', 'SC-', 'FL-', 'PO-')
+	AND copia.SubSpecimen.suffix <> 'POST' 
+	AND copia.OrderedPanel.isCancelled = 0
+ORDER BY copia.Result.resultKey
+]]>
+      <ResultAction ResultAction="MemoryStore" VariableName="TestResultsSourceData"/>
+    </Step>
+    <Step Name="Write TestResults Data to Staging Database" StepType="Sync" DataSource="TargetDB" DataTarget="StagingDB">
+      <Source InMemoryStore="True" VariableName="TestResultsSourceData"/>
+      <Keys>
+        <PKey Source="recordKey" Target="recordKey"/>
+      </Keys>
+      <Map BatchSize="200" TableName="TestResults">
+				<Column Name="recordKey" Type="Numeric"/>
+				<Column Name="numresult" Type="Numeric"/>
+        <Column Name="textresult"/>
+        <Column Name="rundate" Type="datetime"/>
+        <Column Name="testKey" Type="Numeric"/>
+        <Column Name="sid" Length="20"/>
+        <Column Name="blookey" Type="Numeric"/>
+        <Column Name="patikey" Type="Numeric"/>
+        <Column Name="orderingPhysicianKey" Type="Numeric"/>
+        <Column Name="prefix" Length="2"/>
+        <Column Name="Status" Type="Numeric"/>
+        <Column Name="Ordpkey" Type="Numeric"/>
+        <Column Name="labTestDescription" Length="100"/>
+        <Column Name="requisitionKey" Type="Numeric"/>
+      </Map>
+		</Step>
+    <Step Name="Remove TestResults DataTable From Memory" StepType="RemoveVariable" VariableName="TestResultsSourceData"></Step>
+    <Step Name="BridgeLog-End" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+UPDATE BridgeLog
+ SET [EndDateTime] = GetDate()
+WHERE [ID] = '[~BridgeLogId~]';
+]]>
+    </Step>
+</BridgeProcess>

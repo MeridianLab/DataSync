@@ -1,0 +1,2 @@
+﻿<%@ Control Language="C#" AutoEventWireup="true" CodeBehind="ProjectStepsList.ascx.cs" Inherits="Harvest.Bridge.WebSite.Editor.Ctrls.ProjectStepsList" %>
+<b>Project&nbsp;<asp:Label ID="lblProjectName" runat="server" Text="??"></asp:Label>&nbsp;<asp:Label ID="Label1" runat="server" Text="Steps List"></asp:Label>&nbsp;</b><asp:DropDownList ID="drpProjectStepList" runat="server" AutoPostBack="True" OnSelectedIndexChanged="drpProjectStep_OnChange"></asp:DropDownList>

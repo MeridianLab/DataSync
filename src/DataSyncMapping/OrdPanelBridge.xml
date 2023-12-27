@@ -1,0 +1,50 @@
+<BridgeProcess Name="OrdPanel">
+  <Variables>
+    <Variable Name="BridgeLogId" SourceType="GenerateId" ValueType="Guid"></Variable>
+  </Variables>
+    <Step Name="Update Bridge Log" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+    INSERT INTO BridgeLog
+    ([ID],[StartDateTime], [EndDateTime], [Status], [DescLog], [CurrentStep])
+    VALUES('[~BridgeLogId~]',getdate(), null, 'Running', null, 'Importing From Copia; OrdPanel');
+]]>
+    </Step>
+    <Step Name="Clear Existing OrdPanel Table" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+    TRUNCATE TABLE OrdPanel
+]]>
+    </Step>
+    <Step Name="Read OrdPanel Records from Copia" StepType="SQLRead" DataSource="SourceDB">
+      <![CDATA[
+declare @epochDt as BIGINT = (select ReportHelper.dbo.ufnDateTime2EpochSec(DateAdd(day,-[~ImportDays~],GetDate())))
+
+SELECT	orderedPanelKey recordKey, 1 AS done,
+	ReportHelper.dbo.ufnEpochSec2DateDST(updateStamp) AS apprdate
+FROM	copia.OrderedPanel WITH (NOLOCK)
+WHERE	isCancelled = 0
+AND updateStamp > @epochDt
+ORDER BY orderedPanelKey
+
+]]>
+      <ResultAction ResultAction="MemoryStore" VariableName="OrdPanelSourceData"/>
+    </Step>    
+    <Step Name="Write OrdPanel Data to Staging Database" StepType="Sync" DataSource="TargetDB" DataTarget="StagingDB">
+      <Source InMemoryStore="True" VariableName="OrdPanelSourceData"/>
+      <Keys>
+        <PKey Source="recordKey" Target="recordKey"/>
+      </Keys>
+      <Map BatchSize="500" TableName="OrdPanel">
+				<Column Name="recordKey" Type="Numeric"/>
+				<Column Name="done" Type="Numeric"/>
+				<Column Name="apprdate" Type="datetime"/>
+			</Map>
+		</Step>
+    <Step Name="Remove OrdPanel DataTable From Memory" StepType="RemoveVariable" VariableName="OrdPanelSourceData"></Step>
+    <Step Name="BridgeLog-End" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+UPDATE BridgeLog
+ SET [EndDateTime] = GetDate()
+WHERE [ID] = '[~BridgeLogId~]';
+]]>
+    </Step>
+</BridgeProcess>

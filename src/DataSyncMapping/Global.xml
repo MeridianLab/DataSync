@@ -1,0 +1,10 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Global>
+	<Variables>
+    <Variable Name="ImportDays" SourceType="Value" ValueType="Numeric">30</Variable>
+    <Variable Name="CopiaLocationIds" SourceType="SQL" DBSourceName="TargetDB" ValueType="CommaDelimitedString">
+    <![CDATA[
+    select CopiaKey from location where CopiaKey is not null order by CopiaKey
+]]></Variable>
+	</Variables>
+</Global>

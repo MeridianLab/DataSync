@@ -1,0 +1,54 @@
+<BridgeProcess Name="Test">
+  <Variables>
+    <Variable Name="BridgeLogId" SourceType="GenerateId" ValueType="Guid"></Variable>
+  </Variables>
+    <Step Name="Update Bridge Log" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+    INSERT INTO BridgeLog
+    ([ID],[StartDateTime], [EndDateTime], [Status], [DescLog], [CurrentStep])
+    VALUES('[~BridgeLogId~]',getdate(), null, 'Running', null, 'Importing From Copia; Test');
+]]>
+    </Step>
+  <Step Name="Work In Progress, not complete" StepType="NotDone">
+
+  </Step>
+    <Step Name="Clear Existing Test Table" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+    TRUNCATE TABLE Test
+]]>
+    </Step>
+    <Step Name="Update ReportHelper.copia.Test" StepType="SQLRead" DataSource="SourceDB">
+      <![CDATA[
+
+INSERT INTO ReportHelper.copia.Test
+	(abbreviation, createStamp, description, hostCode, hostKey, isAssigned, isTitleColored, 
+	 LOINC, name, orchardID, spaceBefore, testKey, testType, 
+     titleText, updateStamp, updateVersion)
+SELECT  abbreviation, createStamp, description, hostCode, hostKey, isAssigned, isTitleColored, 
+	 LOINC, name, orchardID, spaceBefore, testKey, testType, 
+     titleText, updateStamp, updateVersion
+FROM copia.copia.test
+
+]]>
+      <ResultAction ResultAction="MemoryStore" VariableName="TestSourceData"/>
+    </Step>
+    <Step Name="Write Test Data to Staging Database" StepType="Sync" DataSource="TargetDB" DataTarget="StagingDB">
+      <Source InMemoryStore="True" VariableName="TestSourceData"/>
+      <Keys>
+        <PKey Source="recordKey" Target="recordKey"/>
+      </Keys>
+      <Map BatchSize="500" TableName="Test">
+				<Column Name="recordKey" Type="Numeric"/>
+				<Column Name="done" Type="Numeric"/>
+				<Column Name="apprdate" Type="datetime"/>
+			</Map>
+		</Step>
+    <Step Name="Remove Test DataTable From Memory" StepType="RemoveVariable" VariableName="TestSourceData"></Step>
+    <Step Name="BridgeLog-End" StepType="SQLUpdate" DataTarget="StagingDB">
+      <![CDATA[
+UPDATE BridgeLog
+ SET [EndDateTime] = GetDate()
+WHERE [ID] = '[~BridgeLogId~]';
+]]>
+    </Step>
+</BridgeProcess>

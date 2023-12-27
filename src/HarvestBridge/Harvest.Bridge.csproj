@@ -1,0 +1,77 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="15.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <Import Project="$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props" Condition="Exists('$(MSBuildExtensionsPath)\$(MSBuildToolsVersion)\Microsoft.Common.props')" />
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
+    <ProjectGuid>{D0EFF06A-574E-4934-ADBF-56040FF17C92}</ProjectGuid>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>HarvestBridge</RootNamespace>
+    <AssemblyName>HarvestBridge</AssemblyName>
+    <TargetFrameworkVersion>v4.8</TargetFrameworkVersion>
+    <FileAlignment>512</FileAlignment>
+    <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>full</DebugType>
+    <Optimize>false</Optimize>
+    <OutputPath>bin\Debug\</OutputPath>
+    <DefineConstants>DEBUG;TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
+    <PlatformTarget>AnyCPU</PlatformTarget>
+    <DebugType>pdbonly</DebugType>
+    <Optimize>true</Optimize>
+    <OutputPath>bin\Release\</OutputPath>
+    <DefineConstants>TRACE</DefineConstants>
+    <ErrorReport>prompt</ErrorReport>
+    <WarningLevel>4</WarningLevel>
+  </PropertyGroup>
+  <ItemGroup>
+    <Reference Include="System" />
+    <Reference Include="System.Configuration" />
+    <Reference Include="System.Core" />
+    <Reference Include="System.Web" />
+    <Reference Include="System.Xml.Linq" />
+    <Reference Include="System.Data.DataSetExtensions" />
+    <Reference Include="Microsoft.CSharp" />
+    <Reference Include="System.Data" />
+    <Reference Include="System.Net.Http" />
+    <Reference Include="System.Xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="Properties\AssemblyInfo.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="App.config" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\Harvest.Bridge.Common\Harvest.Bridge.Common.csproj">
+      <Project>{D1A0F27E-FC03-47D1-B32E-013886315C27}</Project>
+      <Name>Harvest.Bridge.Common</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Harvest.Bridge.Logger\Harvest.Bridge.Logger.csproj">
+      <Project>{EB5CBBBD-0D50-4C1F-A291-ECAEA9CFD27F}</Project>
+      <Name>Harvest.Bridge.Logger</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Harvest.Bridge.Sync\Harvest.Bridge.Sync.csproj">
+      <Project>{350FCE0E-FE43-4247-B5F5-0EEDEFF27B97}</Project>
+      <Name>Harvest.Bridge.Sync</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\Harvest.Bridge.Util\Harvest.Bridge.Util.csproj">
+      <Project>{9C7E4B68-AD8A-4DF2-AE12-0AF5DDF02AD3}</Project>
+      <Name>Harvest.Bridge.Util</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\HarvestBridgeDAL\Harvest.Bridge.DAL.csproj">
+      <Project>{8BDBAF25-B0C8-4172-A8EA-6690D094F5E7}</Project>
+      <Name>Harvest.Bridge.DAL</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
+</Project>

@@ -1,0 +1,270 @@
+<BridgeProcess Name="Patient">
+  <Variables>
+    <Variable Name="BridgeLogId" SourceType="GenerateId" ValueType="Guid"></Variable>
+  </Variables>
+  <Step Name="Update Bridge Log" StepType="SQLUpdate" DataTarget="StagingDB">
+<![CDATA[
+    -- update HarvestSQL.dbo.BridgeLog set Status='Running', CurrentStep = 'Importing From Copia; Patient';
+
+    INSERT INTO BridgeLog
+    ([ID],[StartDateTime], [EndDateTime], [Status], [DescLog], [CurrentStep])
+    VALUES('[~BridgeLogId~]',getdate(), null, 'Running', null, 'Importing From Copia; Patient');
+]]>
+  </Step>
+  <Step Name="Clear Existing Patient Table" StepType="SQLUpdate" DataTarget="StagingDB">
+    <![CDATA[
+    TRUNCATE TABLE Patient
+]]>
+  </Step>
+  <Step Name="Read Patient Records from Copia" StepType="SQLRead" DataSource="SourceDB">
+    <![CDATA[
+declare @epochDt as BIGINT = (select ReportHelper.dbo.ufnDateTime2EpochSec(DateAdd(day,-[~ImportDays~],GetDate())))
+
+SELECT distinct	copia.Patient.patientKey RecordKey, copia.Patient.updateStamp, ReportHelper.dbo.ufnEpochSec2DateDST(copia.Patient.updateStamp) AS updateDate, 
+	CASE
+		WHEN copia.Patient.nameSuffix + '' <> ''
+				AND REPLACE(copia.Patient.lastName,'.','') NOT LIKE '%' + REPLACE(copia.Patient.nameSuffix,'.','')
+				AND REPLACE(copia.Patient.nameSuffix,'.','') IN ('JR','SR','II','III','IV','V','VI')
+			THEN copia.Patient.lastName + ' ' + REPLACE(copia.Patient.nameSuffix,'.','')
+		ELSE copia.Patient.lastName
+	END as lastName,
+	copia.Patient.firstName, copia.Patient.middleName AS middleinit,
+	CASE
+		WHEN copia.Patient.birthDateYear > 0 THEN
+			CONVERT(varchar(4), copia.Patient.birthDateMonth) + '/' + 
+			CONVERT(varchar(4), copia.Patient.birthDateDay) + '/' + 
+			CONVERT(varchar(4), copia.Patient.birthDateYear)
+		ELSE NULL
+	END AS DOB,
+	copia.Patient.ID2 AS SSN,
+	copia.Address.address1, copia.Address.address2, copia.Address.zipCode AS zip,
+	copia.Patient.phone1, copia.Patient.phone2,
+	CASE
+		WHEN sexkey = 1
+			THEN 'M' 
+		WHEN sexkey = 2 
+			THEN 'F' 
+		ELSE 'U' 
+	END AS sex, 
+	copia.Patient.primaryPhysicianKey AS provKey, copia.Patient.orgChartNumber AS customaccno, 
+	copia.Patient.locationKey AS LOCKEY, copia.Location.name AS LocName, 
+	copia.Staff.Lastname as prvdrLastname, copia.Staff.firstname as prvdrFirstname,
+	0 AS day, 0 AS shift, ReportHelper.dbo.ufnEpochSec2DateDST(copia.Patient.createStamp) AS createStamp, 
+	Encounter.admissionTypeKey, Encounter.patientTypeKey
+FROM	copia.Location WITH (NOLOCK) 
+		LEFT OUTER JOIN copia.Patient WITH (NOLOCK)
+			ON copia.Patient.locationKey = copia.Location.locationKey
+		LEFT OUTER JOIN copia.Address WITH (NOLOCK)
+			ON copia.Patient.addressKey = copia.Address.addressKey
+		LEFT OUTER JOIN
+			(select copia.Encounter.encounterKey, copia.Encounter.patientKey,
+				copia.Encounter.admissionTypeKey,copia.Encounter.PatientStatus,
+				copia.Encounter.patientTypeKey
+			from copia.Encounter WITH (NOLOCK)
+				INNER JOIN
+					(select	Encounter.encounterkey
+					from
+						(select	MaxEncounter.encounterkey
+							,CASE
+								WHEN MaxEncounter.createStamp > MaxEncounter.openStamp
+									THEN MaxEncounter.createStamp
+								ELSE MaxEncounter.openStamp
+							END as DateStamp
+							,max(CASE
+								WHEN MaxEncounter.createStamp > MaxEncounter.openStamp
+									THEN MaxEncounter.createStamp
+								ELSE MaxEncounter.openStamp
+							END) over (partition by patientKey) as MaxDate
+						from copia.Encounter MaxEncounter WITH (NOLOCK)
+						where MaxEncounter.closeStamp < 0) Encounter
+					where       DateStamp = MaxDate) as LastEncounter
+					ON copia.Encounter.encounterKey = LastEncounter.EncounterKey) AS Encounter
+			ON copia.Patient.patientKey = Encounter.patientKey
+		left outer join copia.staff WITH (NOLOCK)
+			ON copia.Patient.primaryPhysicianKey = copia.staff.staffkey
+WHERE	
+copia.Patient.updateStamp > @epochDt
+AND (SUBSTRING(copia.Location.ID, 0, 4) NOT IN ('NC-', 'SC-', 'FL-', 'PO-'))
+		AND(copia.Patient.isActive = '1')
+		AND (copia.Patient.lastName NOT LIKE '(e%')		
+    AND (copia.Patient.lastName NOT LIKE '(w%')
+AND copia.Patient.locationKey IN ([~CopiaLocationIds~])
+ORDER BY copia.Patient.patientKey
+
+]]>
+    <ResultAction ResultAction="MemoryStore" VariableName="PatientSourceData"/>
+  </Step>
+  <Step Name="Write Patient Records To HarvestSQL" StepType="Sync" DataSource="TargetDB" DataTarget="StagingDB">
+    <!-- 
+  Using DataSource="TargetDB" to pull comparison records from HarvestSQL to determine update/insert/ignore
+  using DataTarget="StagingDB" pushing inserted/updated records into staging database for further updates before pushing into HarvestSQL
+  -->
+    <Source InMemoryStore="True" VariableName="PatientSourceData"/>
+    <Keys>
+      <PKey Source="recordKey" Target="recordKey"/>
+      <FKey Source="locKey" Target="locKey"/>
+      <EpochTimStamp Source="updateStamp" Target="updateStamp"/>
+    </Keys>
+    <Map TableName="Patient" BatchSize="100">
+			<Column Name="recordKey" Type="Numeric"/>
+			<Column Name="LastName" Length="30"/>
+			<Column Name="FirstName" Length="30"/>
+			<Column Name="DOB" Type="datetime"/>
+			<!-- <Column Name="Age" Type="Numeric"/> -->
+			<Column Name="SSN" Length="10" DefaultValue="111111111"/>
+			<Column Name="address1" Length="30"/>
+			<Column Name="address2" Length="30"/>
+			<Column Name="zip" Length="9"/>
+			<Column Name="phone1" Length="20"/>
+			<Column Name="phone2" Length="20"/>
+			<Column Name="sex" Length="2"/>
+			<Column Name="provkey" Type="Numeric"/>
+			<Column Name="customaccno" Length="25"/>
+			<Column Name="middleinit" Length="2"/>
+			<Column Name="lockey" Type="Numeric"/>
+			<Column Name="day" Type="Numeric"/>
+			<Column Name="shift" Type="Numeric"/>
+			<!--<Column Name="status"/>-->
+			<!--<Column Name="intStatus" Type="Numeric"/>-->
+			<!--<Column Name="modality" Length="10"/>-->
+      <!--<Column Name="intModality" Type="Numeric"/>-->
+      <Column Name="createstamp" Type="datetime"/>
+			<Column Name="updateStamp" Type="numeric"/>
+			<Column Name="updateDate" Type="datetime"/>
+    </Map>
+  </Step>
+  <Step Name="Remove Patient DataTable From Memory" StepType="RemoveVariable" VariableName="PatientSourceData"></Step>
+  <Step Name="Update Location Key" StepType="SQLUpdate" DataTarget="StagingDB">
+<![CDATA[
+UPDATE Patient
+SET LocKey = HL.recordKey
+FROM Patient
+LEFT OUTER JOIN HarvestSQL.dbo.Location HL
+ON Patient.LOCKEY = HL.CopiaKey
+]]>
+  </Step>
+  <Step Name="HSM Hack for HT Locations" StepType="SQLUpdate" DataTarget="StagingDB">
+<![CDATA[
+update	P
+set P.LOCKEY = L.recordKey
+from	Patient P 
+inner join 
+(SELECT * 
+FROM HarvestSQL.dbo.location 
+WHERE RIGHT(abbrev,3) = '-HT' 
+and organizationKey = 168
+) LHT
+on P.LOCKEY = LHT.recordKey
+inner join 
+(SELECT *
+FROM HarvestSQL.dbo.location
+WHERE organizationKey = 168
+) L
+ON L.abbrev = LEFT(LHT.abbrev,charindex('-',LHT.abbrev)-1)
+]]>    
+  </Step>
+  <Step Name="HSM Hack for VO Providers - Read Data" StepType="SQLRead" DataSource="SourceDB">
+    <![CDATA[
+--Update Patients to replace their VO doctors with non-VO doctors
+declare @TempTable table(provKey int, ID varchar(max), VO_ID varchar(max), VO_provKey int)
+
+insert into @TempTable (provKey, ID, VO_ID, VO_provKey)
+select staffKey, ID, null, null
+from  copia.Host_Staff_Map CHSM
+where hostKey = 1
+and RIGHT(ID,4) = '-HSM' -- = LEFT(ID,charindex('-',CHSM.ID)) + 'HSM'
+
+update TT
+set VO_ID = CHSM.ID
+,VO_provKey = CHSM.staffKey
+from copia.Host_Staff_Map CHSM
+inner join @TempTable TT
+on LEFT(CHSM.ID,charindex('-',CHSM.ID)) = LEFT(TT.ID,charindex('-',TT.ID))
+where CHSM.ID like '%-VO'
+
+update @TempTable set VO_provKey = -999 where VO_provKey IS NULL
+
+SELECT provKey, ID, VO_ID, VO_provKey FROM @TempTable
+]]>
+    <ResultAction ResultAction="MemoryStore" VariableName="HSMProvidersSourceData"/>
+  </Step>
+  <Step Name="HSM Hack for VO Providers - Update Data" StepType="SQLUpdate" DataTarget="StagingDB" DataSource="InMemory:HSMProvidersSourceData">
+    <Source InMemoryStore="True" VariableName="HSMProvidersSourceData"/>
+    <![CDATA[UPDATE Patient SET LocKey = [~Source.provKey~] WHERE LOCKEY = [~Source.VO_provKey~];]]>
+  </Step>
+  <Step Name="Remove HSMProvidersSourceData DataTable From Memory" StepType="RemoveVariable" VariableName="HSMProvidersSourceData"></Step>
+  <Step Name="Clean Up Patients" StepType="SQLUpdate" DataTarget="StagingDB">
+<![CDATA[
+DELETE
+FROM Patient
+WHERE LocKey is null
+
+DELETE from patient 
+where SUBSTRING(patient.lastname, 0, 6) IN ('(EMP)',  '(REG)', '(XPLA')
+]]>
+  </Step>
+  <Step Name="Update Age,Shift Day" StepType="SQLUpdate" DataTarget="StagingDB" >
+      <![CDATA[
+Update Patient 
+SET Age = FLOOR(DATEDIFF(day, DOB, GetDate()) / 365.25)
+
+UPDATE Patient  
+SET SHIFT =  dbo.ParsePatientShift(address2)
+
+UPDATE Patient 
+SET [DAY] =  dbo.ParsePatientDay(address2)
+]]>
+  </Step>
+  <Step Name="Update SSN" StepType="SQLUpdate" DataTarget="StagingDB">
+    <![CDATA[
+UPDATE Patient WITH (ROWLOCK) SET SSN = '111111111' WHERE SSN IS NULL
+]]>
+  </Step>
+  <Step Name="Create Indexes" StepType="Skip"></Step>
+  <Step Name="Update Modality And Status" StepType="SQLUpdate" DataTarget="StagingDB">
+    <![CDATA[
+update patient
+set patient.modality = copiaAdmissionType.name
+from patient inner join 
+     copiaAdmissionType on patient.intModality = copiaAdmissionType.admissionTypeKey
+
+update patient
+set patient.status = copiaPatientType.name
+from patient inner join 
+     copiaPatientType on patient.intStatus = copiaPatientType.patientTypeKey
+
+update patient
+set patient.modality =
+ case 
+  when modality='PD' then 'PD'
+  when modality='Home Hemo' then 'HH'
+  when modality='In Center' then NULL
+  when lastname like '%*PD*%' then 'PD'
+  when lastname like '%*HH*%' then 'HH'
+  when lastname like '%*STU*%' then 'STU'
+ end
+
+update patient
+set patient.status =
+ case 
+  when status='Active' then NULL
+  when status='Inactive' then 'INA'
+  when lastname like '(EMP%' then 'EMP'
+  when lastname like '(DEC)%' then 'DEC'
+  when lastname like '(DISC)%' then 'DISC'
+  when lastname like '(INR)%' then 'INR'
+  when lastname like '(XFR)%' then 'XFR'
+  when lastname like '(XFD)%' then 'XFD'
+  when lastname like '(INA)%' then 'INA'
+  when lastname like '(TRANS)%' then 'TRANS'
+ end
+]]>    
+  </Step>
+  <Step Name="BridgeLog-End" StepType="SQLUpdate" DataTarget="StagingDB">
+    <![CDATA[
+UPDATE BridgeLog
+ SET [EndDateTime] = GetDate()
+WHERE [ID] = '[~BridgeLogId~]';
+]]> 
+  </Step>
+</BridgeProcess>
